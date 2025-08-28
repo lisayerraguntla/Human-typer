@@ -1,8 +1,14 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { CheckCircle, Users, Shield, Zap, Download, Star } from "lucide-react"
 import Link from "next/link"
+
+const CheckCircle = () => <span className="inline-block w-4 h-4 text-center">✓</span>
+const Users = () => <span className="inline-block w-8 h-8 text-center text-2xl">👥</span>
+const Shield = () => <span className="inline-block w-8 h-8 text-center text-2xl">🛡️</span>
+const Zap = () => <span className="inline-block w-8 h-8 text-center text-2xl">⚡</span>
+const Download = () => <span className="inline-block w-8 h-8 text-center text-2xl">📥</span>
+const Star = () => <span className="inline-block w-8 h-8 text-center text-2xl">⭐</span>
 
 export default function HomePage() {
   return (
