@@ -5,25 +5,32 @@ const REALM = "Preview"
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
+  const headers = req.headers
+  const hasStripeSig = headers.has("stripe-signature")
 
-  // Allow Stripe to post without auth
-  if (pathname.startsWith("/api/stripe/webhook")) return NextResponse.next()
+  // 1) Always allow Stripe webhook calls (by path OR header)
+  if (
+    hasStripeSig ||
+    pathname === "/api/stripe/webhook" ||
+    pathname.startsWith("/api/stripe/webhook?") // safety if query params ever appear
+  ) {
+    return NextResponse.next()
+  }
 
-  // (Optional) let static assets through to avoid extra prompts
+  // 2) Let static/assets through (optional)
   if (pathname.startsWith("/_next/") || pathname === "/favicon.ico" || pathname === "/robots.txt") {
     return NextResponse.next()
   }
 
+  // 3) Basic Auth for everything else
   const user = process.env.PREVIEW_USER
   const pass = process.env.PREVIEW_PASS
 
-  // If not configured, fail loudly so you know what's wrong
   if (!user || !pass) {
     return new NextResponse("Preview auth not configured", { status: 500 })
   }
 
-  const auth = req.headers.get("authorization") ?? ""
-  // Edge runtime supports btoa
+  const auth = headers.get("authorization") ?? ""
   const expected = "Basic " + btoa(`${user}:${pass}`)
 
   if (auth !== expected) {
@@ -36,5 +43,4 @@ export function middleware(req: NextRequest) {
   return NextResponse.next()
 }
 
-// Protect everything by default; we skip specific paths above.
 export const config = { matcher: ["/(.*)"] }
