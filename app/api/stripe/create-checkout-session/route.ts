@@ -37,22 +37,40 @@ export async function POST(request: NextRequest) {
     }
 
     const baseUrl = getBaseUrl()
-    console.log("[v0] Using base URL for Stripe:", baseUrl)
+    const cleanBaseUrl = baseUrl.trim().replace(/\/$/, "") // Remove trailing slash
+    console.log("[v0] Using base URL for Stripe:", cleanBaseUrl)
     console.log("[v0] Using Stripe Price ID:", process.env.STRIPE_PRICE_ID)
 
-    const successUrl = `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}`
-    const cancelUrl = `${baseUrl}/cancel`
+    const successUrl = `${cleanBaseUrl}/success?session_id={CHECKOUT_SESSION_ID}`
+    const cancelUrl = `${cleanBaseUrl}/cancel`
 
     console.log("[v0] Success URL:", successUrl)
     console.log("[v0] Cancel URL:", cancelUrl)
 
-    // Validate URLs are properly formatted
     try {
-      new URL(successUrl.replace("{CHECKOUT_SESSION_ID}", "test"))
+      const testSuccessUrl = successUrl.replace("{CHECKOUT_SESSION_ID}", "cs_test_123")
+      new URL(testSuccessUrl)
       new URL(cancelUrl)
+
+      // Additional validation for Stripe requirements
+      if (!successUrl.startsWith("https://") && !successUrl.startsWith("http://localhost")) {
+        throw new Error("URLs must use HTTPS or localhost")
+      }
+      if (successUrl.length > 2048 || cancelUrl.length > 2048) {
+        throw new Error("URLs must be less than 2048 characters")
+      }
     } catch (urlError) {
       console.error("[v0] Invalid URL format:", urlError)
-      return NextResponse.json({ error: "Invalid URL configuration" }, { status: 500 })
+      console.error("[v0] Base URL:", cleanBaseUrl)
+      console.error("[v0] Success URL:", successUrl)
+      console.error("[v0] Cancel URL:", cancelUrl)
+      return NextResponse.json(
+        {
+          error: "Invalid URL configuration",
+          details: urlError instanceof Error ? urlError.message : "Unknown URL error",
+        },
+        { status: 500 },
+      )
     }
 
     // Create Stripe checkout session
