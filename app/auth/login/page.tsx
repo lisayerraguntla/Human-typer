@@ -26,15 +26,24 @@ export default function LoginPage() {
     setError(null)
 
     try {
-      if (email && password) {
-        // Simulate API call
-        await new Promise((resolve) => setTimeout(resolve, 1000))
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      })
 
-        // Mock successful login
-        router.push("/dashboard")
-      } else {
-        throw new Error("Please enter both email and password")
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Invalid email or password")
       }
+
+      router.push("/dashboard")
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "An error occurred")
     } finally {

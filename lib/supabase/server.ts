@@ -1,5 +1,22 @@
-import { createClient as createSupabaseClient } from "@supabase/supabase-js"
-
 export async function createClient() {
-  return createSupabaseClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+  return {
+    auth: {
+      getUser: async () => {
+        return { data: { user: null }, error: null }
+      },
+      getSession: async () => {
+        return { data: { session: null }, error: null }
+      },
+    },
+    from: (table: string) => ({
+      select: () => ({
+        eq: () => ({
+          single: async () => ({ data: null, error: null }),
+        }),
+      }),
+      insert: async () => ({ data: null, error: null }),
+      update: async () => ({ data: null, error: null }),
+      delete: async () => ({ data: null, error: null }),
+    }),
+  }
 }

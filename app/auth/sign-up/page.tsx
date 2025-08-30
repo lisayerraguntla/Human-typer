@@ -1,8 +1,6 @@
 "use client"
 
 import type React from "react"
-
-import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -12,7 +10,9 @@ import { Checkbox } from "@/components/ui/checkbox"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
-import { UserPlus, ArrowLeft } from "lucide-react"
+
+const UserPlus = () => <span className="inline-block w-6 h-6 text-center text-xl">👤</span>
+const ArrowLeft = () => <span className="inline-block w-4 h-4 text-center">←</span>
 
 export default function SignUpPage() {
   const [email, setEmail] = useState("")
@@ -26,7 +26,6 @@ export default function SignUpPage() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
-    const supabase = createClient()
     setIsLoading(true)
     setError(null)
 
@@ -49,18 +48,24 @@ export default function SignUpPage() {
     }
 
     try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo:
-            process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/auth/callback`,
-          data: {
-            full_name: fullName,
-          },
+      const response = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
+        body: JSON.stringify({
+          email,
+          password,
+          fullName,
+        }),
       })
-      if (error) throw error
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to create account")
+      }
+
       router.push("/auth/verify-email")
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "An error occurred")
@@ -76,7 +81,7 @@ export default function SignUpPage() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             <Link href="/" className="flex items-center space-x-2">
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft />
               <span className="text-sm text-muted-foreground">Back to Home</span>
             </Link>
             <div className="flex items-center space-x-2">
@@ -95,7 +100,7 @@ export default function SignUpPage() {
           <Card>
             <CardHeader className="text-center">
               <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-                <UserPlus className="h-6 w-6 text-primary" />
+                <UserPlus />
               </div>
               <CardTitle className="text-2xl">Create Your Account</CardTitle>
               <CardDescription>
