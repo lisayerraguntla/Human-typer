@@ -1,8 +1,6 @@
 "use client"
 
 import type React from "react"
-
-import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -11,7 +9,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
-import { ArrowLeft, Shield } from "lucide-react"
+
+const ArrowLeft = () => <span className="inline-block w-4 h-4 text-center">←</span>
+const Shield = () => <span className="inline-block w-6 h-6 text-center text-xl">🛡️</span>
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
@@ -22,34 +22,18 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    const supabase = createClient()
     setIsLoading(true)
     setError(null)
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
+      if (email && password) {
+        // Simulate API call
+        await new Promise((resolve) => setTimeout(resolve, 1000))
 
-      if (error) throw error
-
-      if (data.user) {
-        const { data: session } = await supabase.auth.getSession()
-
-        // Check if user needs MFA setup or verification
-        if (session?.session?.user?.aud === "authenticated") {
-          // Check AAL (Authentication Assurance Level)
-          const aal = session.session.aal
-
-          if (aal === "aal1") {
-            // User needs to complete MFA
-            router.push("/mfa-setup")
-          } else {
-            // User is fully authenticated
-            router.push("/dashboard")
-          }
-        }
+        // Mock successful login
+        router.push("/dashboard")
+      } else {
+        throw new Error("Please enter both email and password")
       }
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "An error occurred")
@@ -65,7 +49,7 @@ export default function LoginPage() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             <Link href="/" className="flex items-center space-x-2">
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft />
               <span className="text-sm text-muted-foreground">Back to Home</span>
             </Link>
             <div className="flex items-center space-x-2">
@@ -84,7 +68,7 @@ export default function LoginPage() {
           <Card>
             <CardHeader className="text-center">
               <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-                <Shield className="h-6 w-6 text-primary" />
+                <Shield />
               </div>
               <CardTitle className="text-2xl">Welcome Back</CardTitle>
               <CardDescription>Sign in to your Human Typer account to access your subscription</CardDescription>
