@@ -15,12 +15,20 @@ export async function POST(request: NextRequest) {
 
     console.log("[v0] Signup attempt:", { email, fullName })
 
-    // Simulate processing time
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    return NextResponse.json({
-      message: "Account created successfully. Please check your email for verification.",
+    // Set authentication cookie immediately after signup
+    const response = NextResponse.json({
+      success: true,
+      message: "Account created successfully! You are now logged in.",
     })
+
+    response.cookies.set("auth-token", "authenticated", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+    })
+
+    return response
   } catch (error) {
     console.error("[v0] Signup error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })

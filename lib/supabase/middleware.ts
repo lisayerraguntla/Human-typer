@@ -7,17 +7,21 @@ export async function updateSession(request: NextRequest) {
 
   console.log("[v0] Middleware processing:", request.nextUrl.pathname)
 
-  // Mock authentication check - in production this would check real auth
   const protectedRoutes = ["/dashboard", "/download", "/billing"]
   const isProtectedRoute = protectedRoutes.some((route) => request.nextUrl.pathname.startsWith(route))
 
-  // For now, allow access to all routes to test the UI
-  // In production, implement proper authentication checks
-  if (isProtectedRoute && false) {
-    // Disabled for testing
-    const url = request.nextUrl.clone()
-    url.pathname = "/auth/login"
-    return NextResponse.redirect(url)
+  if (isProtectedRoute) {
+    // Check for auth token cookie
+    const authToken = request.cookies.get("auth-token")
+
+    if (!authToken || authToken.value !== "authenticated") {
+      console.log("[v0] Redirecting to login - no valid auth token")
+      const url = request.nextUrl.clone()
+      url.pathname = "/auth/login"
+      return NextResponse.redirect(url)
+    }
+
+    console.log("[v0] User authenticated, allowing access to:", request.nextUrl.pathname)
   }
 
   return supabaseResponse
