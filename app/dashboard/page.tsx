@@ -1,9 +1,12 @@
+"use client"
+
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Download, Shield, User, CreditCard } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Download, Shield, User, CreditCard, Key, Copy, CheckCircle } from "lucide-react"
 import Link from "next/link"
 
 export default async function DashboardPage() {
@@ -24,6 +27,22 @@ export default async function DashboardPage() {
     .eq("user_id", data.user.id)
     .eq("status", "active")
     .single()
+
+  // Get license key
+  const { data: license } = await supabase
+    .from("licenses")
+    .select("*")
+    .eq("user_id", data.user.id)
+    .eq("status", "active")
+    .single()
+
+  // Get recent downloads
+  const { data: recentDownloads } = await supabase
+    .from("downloads")
+    .select("*")
+    .eq("user_id", data.user.id)
+    .order("downloaded_at", { ascending: false })
+    .limit(3)
 
   const hasActiveSubscription = !!subscription
 
@@ -57,6 +76,18 @@ export default async function DashboardPage() {
           <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
           <p className="text-muted-foreground">Manage your Human Typer subscription and download the extension</p>
         </div>
+
+        {!hasActiveSubscription && (
+          <Alert className="mb-6">
+            <AlertDescription>
+              <strong>No active subscription found.</strong> Subscribe to access the Human Typer extension and all
+              premium features.
+              <Button asChild size="sm" className="ml-4">
+                <Link href="/subscribe">Subscribe Now</Link>
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Subscription Status */}
@@ -96,6 +127,35 @@ export default async function DashboardPage() {
             </CardContent>
           </Card>
 
+          {hasActiveSubscription && license && (
+            <Card>
+              <CardHeader>
+                <Key className="h-8 w-8 text-primary" />
+                <CardTitle>License Key</CardTitle>
+                <CardDescription>Your unique license key for the extension</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="p-3 bg-muted rounded-lg">
+                    <code className="text-sm font-mono break-all">{license.license_key}</code>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full bg-transparent"
+                    onClick={() => navigator.clipboard.writeText(license.license_key)}
+                  >
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copy License Key
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    Use this key to activate the extension after installation
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Download Extension */}
           <Card>
             <CardHeader>
@@ -105,9 +165,16 @@ export default async function DashboardPage() {
             </CardHeader>
             <CardContent>
               {hasActiveSubscription ? (
-                <Button asChild>
-                  <Link href="/download">Download Extension</Link>
-                </Button>
+                <div className="space-y-2">
+                  <Button asChild className="w-full">
+                    <Link href="/download">Download Extension</Link>
+                  </Button>
+                  {recentDownloads && recentDownloads.length > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      Last downloaded: {new Date(recentDownloads[0].downloaded_at).toLocaleDateString()}
+                    </p>
+                  )}
+                </div>
               ) : (
                 <div className="space-y-2">
                   <p className="text-sm text-muted-foreground">Subscribe to access the extension download</p>
@@ -128,10 +195,13 @@ export default async function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <span>Two-Factor Authentication Enabled</span>
+                </div>
                 <Button variant="outline" size="sm" asChild>
                   <Link href="/security">Security Settings</Link>
                 </Button>
-                <p className="text-xs text-muted-foreground">Enable 2FA for enhanced security</p>
               </div>
             </CardContent>
           </Card>
@@ -157,6 +227,30 @@ export default async function DashboardPage() {
               </div>
             </CardContent>
           </Card>
+
+          {hasActiveSubscription && recentDownloads && recentDownloads.length > 0 && (
+            <Card>
+              <CardHeader>
+                <Download className="h-8 w-8 text-primary" />
+                <CardTitle>Recent Activity</CardTitle>
+                <CardDescription>Your recent downloads and activity</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {recentDownloads.map((download, index) => (
+                    <div key={download.id} className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">
+                        {download.download_url?.includes("chrome") ? "Chrome Extension" : "Firefox Extension"}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(download.downloaded_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>

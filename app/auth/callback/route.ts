@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/client"
+import { createClient } from "@/lib/supabase/server"
 import { type NextRequest, NextResponse } from "next/server"
 
 export async function GET(request: NextRequest) {
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
   }
 
   if (code) {
-    const supabase = createClient()
+    const supabase = await createClient()
 
     try {
       const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
@@ -29,8 +29,17 @@ export async function GET(request: NextRequest) {
 
       if (data.session) {
         console.log("[v0] Successfully authenticated user:", data.user?.email)
-        // Redirect to dashboard after successful authentication
-        return NextResponse.redirect(`${requestUrl.origin}/dashboard`)
+
+        const { data: factors } = await supabase.auth.mfa.listFactors()
+        const hasMFA = factors?.totp && factors.totp.length > 0
+
+        if (!hasMFA) {
+          // Redirect to MFA setup if not configured
+          return NextResponse.redirect(`${requestUrl.origin}/mfa-setup`)
+        } else {
+          // Redirect to dashboard if MFA is already set up
+          return NextResponse.redirect(`${requestUrl.origin}/dashboard`)
+        }
       }
     } catch (error) {
       console.error("[v0] Auth callback exception:", error)

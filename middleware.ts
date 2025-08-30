@@ -1,9 +1,10 @@
+import { updateSession } from "@/lib/supabase/middleware"
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
 const REALM = "Preview"
 
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
   const headers = req.headers
   const hasStripeSig = headers.has("stripe-signature")
@@ -20,6 +21,13 @@ export function middleware(req: NextRequest) {
   // 2) Let static/assets through (optional)
   if (pathname.startsWith("/_next/") || pathname === "/favicon.ico" || pathname === "/robots.txt") {
     return NextResponse.next()
+  }
+
+  const supabaseResponse = await updateSession(req)
+
+  // If Supabase middleware returned a redirect, use that
+  if (supabaseResponse.status === 307 || supabaseResponse.status === 302) {
+    return supabaseResponse
   }
 
   const user = process.env.PREVIEW_USER
@@ -39,7 +47,19 @@ export function middleware(req: NextRequest) {
     }
   }
 
-  return NextResponse.next()
+  return supabaseResponse
 }
 
-export const config = { matcher: ["/(.*)"] }
+export const config = {
+  matcher: [
+    /*
+     * Match all request paths except:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - images - .svg, .png, .jpg, .jpeg, .gif, .webp
+     * Feel free to modify this pattern to include more paths.
+     */
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+  ],
+}
